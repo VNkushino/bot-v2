@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Rút gọn tất cả loại link</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 40px auto;
+      padding: 20px;
+      background: #f0f0f0;
+      border-radius: 8px;
+    }
+    input, button {
+      width: 100%;
+      padding: 12px;
+      margin: 8px 0;
+      font-size: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    button {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    .result {
+      margin-top: 20px;
+      padding: 12px;
+      background: white;
+      border-radius: 4px;
+      word-wrap: break-word;
+    }
+    .error {
+      color: red;
+    }
+  </style>
+</head>
+<body>
+  <h1>🔗 Giải mã tất cả loại link rút gọn</h1>
+  <input type="text" id="shortLink" placeholder="Dán link bất kỳ vào đây..." />
+  <button onclick="processLink()">Giải mã link</button>
+
+  <div id="result" class="result"></div>
+
+  <script>
+    async function processLink() {
+      const input = document.getElementById('shortLink').value.trim();
+      const resultDiv = document.getElementById('result');
+      resultDiv.innerHTML = '';
+
+      if (!input) {
+        resultDiv.innerHTML = '<span class="error">Vui lòng nhập link!</span>';
+        return;
+      }
+
+      try {
+        const urlObj = new URL(input);
+        const base64Param = urlObj.searchParams.get('url');
+        
+        // Case 1: Nếu có chuỗi base64 trong tham số ?url=
+        if (base64Param) {
+          try {
+            const decoded = decodeURIComponent(atob(base64Param));
+            resultDiv.innerHTML = `<strong>Link gốc (Base64):</strong> <a href="${decoded}" target="_blank">${decoded}</a>`;
+            return;
+          } catch {
+            resultDiv.innerHTML = '<span class="error">Giải mã base64 thất bại!</span>';
+            return;
+          }
+        }
+
+        // Case 2: Nếu là link redirect đơn giản, fetch HEAD để lấy link cuối
+        try {
+          const res = await fetch(input, { method: "HEAD", redirect: "follow" });
+          const finalUrl = res.url;
+          if (finalUrl && finalUrl !== input) {
+            resultDiv.innerHTML = `<strong>Link gốc (redirect):</strong> <a href="${finalUrl}" target="_blank">${finalUrl}</a>`;
+            return;
+          }
+        } catch (e) {
+          // CORS blocked - skip silently
+        }
+
+        // Case 3: Hiện link và báo không decode được
+        resultDiv.innerHTML = `<strong>Không thể giải mã link:</strong> <code>${input}</code><br><em>(Có thể do CORS hoặc mã hóa đặc biệt cần xử lý server)</em>`;
+
+      } catch (err) {
+        resultDiv.innerHTML = '<span class="error">Link không hợp lệ!</span>';
+      }
+    }
+  </script>
+</body>
+</html>
